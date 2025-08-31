@@ -1,39 +1,59 @@
-<h2>Stripe Charge</h2>
-<div class="alert alert-success" id="sagepay_direct_transaction_msg" style="display:none;"></div>
+<h2>Stripe Payment Intent</h2>
+<div class="alert alert-success" id="stripe_transaction_msg" style="display:none;"></div>
 <table class="table table-striped table-bordered">
   <tr>
     <td>Link</td>
-    <td><a class="btn btn-info btn-xs" href="https://dashboard.stripe.com/{{stripe_environment}}/payments/{{charge.id}}">Stripe charge</a></td>
+    <td><a class="btn btn-info btn-xs" href="https://dashboard.stripe.com/{{stripe_environment}}/payments/{{payment_intent.id}}" target="_blank">View in Stripe Dashboard</a></td>
   </tr>
 
   <tr>
+    <td>Status</td>
+    <td>
+      {% if payment_intent.status == 'succeeded' %}
+        <span class="label label-success">Succeeded</span>
+      {% elseif payment_intent.status == 'processing' %}
+        <span class="label label-warning">Processing</span>
+      {% elseif payment_intent.status == 'requires_payment_method' %}
+        <span class="label label-danger">Requires Payment Method</span>
+      {% elseif payment_intent.status == 'canceled' %}
+        <span class="label label-default">Canceled</span>
+      {% else %}
+        <span class="label label-info">{{payment_intent.status|title}}</span>
+      {% endif %}
+    </td>
+  </tr>
+
+  {% if charge %}
+  <tr>
     <td>Fee</td>
-    <td>{{transaction.fee / 100}} {{transaction.currency}}</td>
+    <td>{{transaction.fee / 100}} {{transaction.currency|upper}}</td>
   </tr>
   <tr>
       <td>Net</td>
-      <td>{{transaction.net / 100}} {{transaction.currency}}</td>
+      <td>{{transaction.net / 100}} {{transaction.currency|upper}}</td>
   </tr>
   <tr>
     <td>Refunded</td>
     <td>
         {% if charge.amount_refunded == charge.amount %}
-          <span class="label label-warning">Yes</span>
+          <span class="label label-warning">Fully Refunded</span>
         {% elseif charge.amount_refunded > 0 %}
-          <span class="label label-success">Partial</span>
+          <span class="label label-success">Partially Refunded</span>
         {% else %}
-          <span class="label label-info">No</span>
+          <span class="label label-info">Not Refunded</span>
         {% endif %}
     </td>
   </tr>
+  {% endif %}
+  {% if charge %}
   <tr>
     <td>Refund</td>
     <td>
         <div class="row">
             <div class="col-sm-3">
                 <div class="input-group">
-                  <input type="text" class="form-control" id="input-refund-amount" value="{{charge.amount - charge.amount_refunded / 100}}">
-                  <span class="input-group-addon">{{charge.currency}}</span>
+                  <input type="text" class="form-control" id="input-refund-amount" value="{{(charge.amount - charge.amount_refunded) / 100}}">
+                  <span class="input-group-addon">{{charge.currency|upper}}</span>
                 </div>
             </div>
             <div class="col-sm-2">
@@ -45,6 +65,8 @@
         </div>
     </td>
   </tr>
+  {% endif %}
+  {% if charge and charge.refunds.data %}
   <tr>
       <td>Refunds</td>
       <td>
@@ -59,11 +81,13 @@
                   <tbody>
                     {% for refund in charge.refunds.data %}
                     <tr>
-                      <td class="text-left">{{refund.amount / 100}} {{refund.currency}}</td>
-                      <td class="text-left">{{created|date(datetime_format)}}</td>
+                      <td class="text-left">{{refund.amount / 100}} {{refund.currency|upper}}</td>
+                      <td class="text-left">{{refund.created|date(datetime_format)}}</td>
                       <td class="text-left">
                         {% if refund.metadata.opencart_user_username %}
                           {{refund.metadata.opencart_user_username}}
+                        {% else %}
+                          System
                         {% endif %}
                       </td>
                     </tr>
@@ -72,6 +96,7 @@
                 </table>
       </td>
   </tr>
+  {% endif %}
 </table>
 
 <script type="text/javascript">
@@ -81,7 +106,7 @@
                 type: 'POST',
                 dataType: 'json',
                 data: {'order_id': {{order_id}}, 'amount': $('#input-refund-amount').val() },
-                url: 'index.php?route=extension/payment/stripe/refund&token={{token}}',
+                url: 'index.php?route=extension/payment/stripe/refund&user_token={{token}}',
                 beforeSend: function() {
                     $('#button-refund').prop('disabled', true);
                     $('#img-loading-refund').show();
@@ -89,7 +114,8 @@
                 success: function(data) {
                     if (data.error == false) {
                       var $table = $('#stripe_refunds_table').find('tbody');
-                      $table.prepend('<tr><td class="text-left">'+$('#input-refund-amount').val()+'</td><td>now</td><td>you</td></tr>');
+                      $table.prepend('<tr><td class="text-left">'+$('#input-refund-amount').val()+' {{charge.currency|upper}}</td><td>Just now</td><td>You</td></tr>');
+                      $('#stripe_transaction_msg').html('{{text_refund_ok}}').show();
                     }
                     if (data.error == true) {
                         alert(data.msg);

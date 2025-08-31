@@ -1,0 +1,93 @@
+{
+  "name": "Stripe-Payment-4.x",
+  "version": "4.0.0",
+  "author": "OpenCart Community",
+  "link": "https://www.stripe.com",
+  "description": "Secure payment processing with Stripe for OpenCart 4.x using Payment Intents API",
+  "type": "payment",
+  "code": "stripe",
+  "files": [
+    "admin/controller/extension/payment/stripe.php",
+    "admin/language/en-gb/extension/payment/stripe.php",
+    "admin/model/extension/payment/stripe.php",
+    "admin/view/template/extension/payment/stripe.twig",
+    "admin/view/template/extension/payment/stripe_order.twig",
+    "admin/view/image/payment/stripe.png",
+    "catalog/controller/extension/payment/stripe.php",
+    "catalog/language/en-gb/extension/payment/stripe.php",
+    "catalog/model/extension/payment/stripe.php",
+    "catalog/view/theme/default/template/extension/payment/stripe.twig",
+    "system/library/stripe.php"
+  ],
+  "install": {
+    "sql": [
+      "CREATE TABLE IF NOT EXISTS `{db_prefix}stripe_order` (`stripe_order_id` varchar(255) NOT NULL, `order_id` int(11) NOT NULL DEFAULT '0', `environment` varchar(5) NOT NULL DEFAULT 'test', PRIMARY KEY (`stripe_order_id`)) ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci",
+      "CREATE TABLE IF NOT EXISTS `{db_prefix}stripe_card` (`stripe_card_id` varchar(255) NOT NULL, `customer_id` INT(11) NOT NULL, `last_four` VARCHAR(4) NOT NULL, `exp_year` VARCHAR(5) NOT NULL, `exp_month` VARCHAR(5) NOT NULL, `brand` VARCHAR(50) NOT NULL, `environment` varchar(5) NOT NULL DEFAULT 'test', PRIMARY KEY (`stripe_card_id`)) ENGINE=MyISAM DEFAULT COLLATE=utf8_general_ci",
+      "CREATE TABLE IF NOT EXISTS `{db_prefix}stripe_customer` (`customer_id` INT(11) NOT NULL, `stripe_customer_id` varchar(255) NOT NULL, `environment` varchar(5) NOT NULL DEFAULT 'test', PRIMARY KEY (`stripe_customer_id`)) ENGINE=MyISAM DEFAULT COLLATE=utf8_general_ci"
+    ]
+  },
+  "uninstall": {
+    "sql": [
+      "DROP TABLE IF EXISTS `{db_prefix}stripe_order`",
+      "DROP TABLE IF EXISTS `{db_prefix}stripe_card`",
+      "DROP TABLE IF EXISTS `{db_prefix}stripe_customer`"
+    ]
+  },
+  "settings": [
+    {
+      "key": "payment_stripe_environment",
+      "value": "test",
+      "serialized": 0
+    },
+    {
+      "key": "payment_stripe_test_publishable_key",
+      "value": "",
+      "serialized": 0
+    },
+    {
+      "key": "payment_stripe_test_secret_key",
+      "value": "",
+      "serialized": 0
+    },
+    {
+      "key": "payment_stripe_live_publishable_key",
+      "value": "",
+      "serialized": 0
+    },
+    {
+      "key": "payment_stripe_live_secret_key",
+      "value": "",
+      "serialized": 0
+    },
+    {
+      "key": "payment_stripe_currency",
+      "value": "usd",
+      "serialized": 0
+    },
+    {
+      "key": "payment_stripe_store_cards",
+      "value": "0",
+      "serialized": 0
+    },
+    {
+      "key": "payment_stripe_status",
+      "value": "0",
+      "serialized": 0
+    },
+    {
+      "key": "payment_stripe_order_status_id",
+      "value": "2",
+      "serialized": 0
+    },
+    {
+      "key": "payment_stripe_sort_order",
+      "value": "0",
+      "serialized": 0
+    }
+  ],
+  "events": [],
+  "permissions": {
+    "access": ["extension/payment/stripe"],
+    "modify": ["extension/payment/stripe"]
+  }
+}

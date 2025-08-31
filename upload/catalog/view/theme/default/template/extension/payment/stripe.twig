@@ -30,29 +30,19 @@
         <div class="form-group required col-sm-12">
           <label class="control-label" for="card-number">{{entry_cc_number}}</label>
           <div class="input-group">
-              <input type="text" class="form-control" id="card-number" name="card-number" placeholder="Valid Card Number" required="" autofocus="" data-stripe="number">
+              <div id="card-number" class="form-control" style="height: 34px; padding: 6px 12px;"></div>
               <span class="input-group-addon"><i class="fa fa-credit-card"></i></span>
           </div>
         </div>
 
         <div class="form-group required col-sm-6">
-          <label for="card-expiry-month">{{entry_cc_expire_date}}</label>
-          <div class="row">
-            <div class="col-xs-6 col-lg-6">
-              <input type="text" class="form-control" name="card-expiry-month" id="card-expiry-month" placeholder="MM" required="" data-stripe="exp_month">
-            </div>
-            <div class="col-xs-6 col-lg-6">
-              <input type="text" class="form-control" name="card-expiry-year" id="card-expiry-year" placeholder="YY" required="" data-stripe="exp_year">
-            </div>
-          </div>
+          <label for="card-expiry">{{entry_cc_expire_date}}</label>
+          <div id="card-expiry" class="form-control" style="height: 34px; padding: 6px 12px;"></div>
         </div>
-
 
         <div class="form-group required col-sm-6">
           <label class="control-label" for="card-cvc">{{entry_cc_cvv2}}</label>
-          <div class="">
-            <input type="text" name="card-cvc" value="" placeholder="{{entry_cc_cvv2}}" id="card-cvc" class="form-control" data-stripe="cvc"/>
-          </div>
+          <div id="card-cvc" class="form-control" style="height: 34px; padding: 6px 12px;"></div>
         </div>
 
 
@@ -77,11 +67,23 @@
     <input type="button" value="{{button_confirm}}" id="button-confirm" data-loading-text="{{text_loading}}" class="btn btn-primary" />
   </div>
 </div>
-<script type="text/javascript" src="https://js.stripe.com/v2/"></script>
+<script type="text/javascript" src="https://js.stripe.com/v3/"></script>
 <script type="text/javascript"><!--
+// Initialize Stripe Elements
+var stripe = Stripe('{{publishable_key}}');
+var elements = stripe.elements();
+
+// Create card elements
+var cardNumber = elements.create('cardNumber');
+var cardExpiry = elements.create('cardExpiry');
+var cardCvc = elements.create('cardCvc');
+
+// Mount the elements
+cardNumber.mount('#card-number');
+cardExpiry.mount('#card-expiry');
+cardCvc.mount('#card-cvc');
 
 $('#button-confirm').bind('click', function() {
-
   var $form = $('#payment-form');
   var $button_confirm = $('#button-confirm');
   var $existing_cards_select = $('#existing-card-select');
@@ -90,6 +92,7 @@ $('#button-confirm').bind('click', function() {
   $form.before('<div class="alert alert-info"><i class="fa fa-info-circle"></i> {{text_wait}} </div>');
 
   if($existing_cards_select.find('option:selected').val() != '0' && $existing_cards_select.find('option:selected').val() != undefined) {
+    // Use existing payment method
     $.ajax({
       url: 'index.php?route=extension/payment/stripe/send',
       type: 'post',
@@ -115,30 +118,25 @@ $('#button-confirm').bind('click', function() {
     });
     return true;
   } else {
-    Stripe.setPublishableKey('{{publishable_key}}');
-
-    function stripeResponseHandler(status, response) {
-
-      // Grab the form:
-      var $form = $('#payment-form');
-
-      if (response.error) { // Problem!
+    // Create Payment Method with Elements
+    stripe.createPaymentMethod({
+      type: 'card',
+      card: cardNumber,
+      billing_details: {
+        // Add billing details if available
+      }
+    }).then(function(result) {
+      if (result.error) {
         $('.alert').remove();
-        $button_confirm.attr('disabled', false);
-
-        // Show the errors on the form
-        $form.before('<div class="alert alert-error">'+ response.error.message +'</div>');
         $button_confirm.prop('disabled', false);
-
-      } else { // Token was created!
-
-        // Get the token ID:
-        var token = response.id;
+        $form.before('<div class="alert alert-danger">' + result.error.message + '</div>');
+      } else {
+        // Send payment method to server
         $.ajax({
           url: 'index.php?route=extension/payment/stripe/send',
           type: 'post',
           data: {
-            card: token,
+            card: result.paymentMethod.id,
             saveCreditCard: !!$('#save-credit-card').prop('checked'),
             existingCard: false
           },
@@ -157,17 +155,9 @@ $('#button-confirm').bind('click', function() {
             }
           }
         });
-
       }
-    }
-
-    Stripe.card.createToken({
-      number: $('#card-number').val(),
-      cvc: $('#card-cvc').val(),
-      exp_month: $('#card-expiry-month').val(),
-      exp_year: $('#card-expiry-year').val()
-    }, stripeResponseHandler);
+    });
   }
-
 });
+
 //--></script>

@@ -1,8 +1,10 @@
 <?php
-class ControllerExtensionPaymentStripe extends Controller {
+class ControllerExtensionPaymentStripe extends Controller
+{
 	private $error = array();
 
-	public function index() {
+	public function index()
+	{
 		$this->load->model('setting/setting');
 
 		$this->load->model('extension/payment/stripe');
@@ -18,7 +20,7 @@ class ControllerExtensionPaymentStripe extends Controller {
 			$this->model_setting_setting->editSetting('payment_stripe', $this->request->post);
 			$this->session->data['success'] = $this->language->get('text_success');
 
-			$this->response->redirect($this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=payment', true));
+			$this->response->redirect($this->url->link('extension/extension', 'user_token=' . $this->session->data['user_token'] . '&type=payment', true));
 		}
 
 		$data['breadcrumbs'] = array();
@@ -30,7 +32,7 @@ class ControllerExtensionPaymentStripe extends Controller {
 
 		$data['breadcrumbs'][] = array(
 			'text' => $this->language->get('text_extension'),
-			'href' => $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=payment', true)
+			'href' => $this->url->link('extension/extension', 'user_token=' . $this->session->data['user_token'] . '&type=payment', true)
 		);
 
 		$data['breadcrumbs'][] = array(
@@ -38,46 +40,46 @@ class ControllerExtensionPaymentStripe extends Controller {
 			'href' => $this->url->link('extension/payment/stripe', 'user_token=' . $this->session->data['user_token'], true)
 		);
 
-		$data['heading_title']         = $this->language->get('heading_title');
+		$data['heading_title'] = $this->language->get('heading_title');
 
-		$data['tab_settings']          = $this->language->get('tab_settings');
+		$data['tab_settings'] = $this->language->get('tab_settings');
 
-		$data['text_payment']          = $this->language->get('text_payment');
-		$data['text_edit']             = $this->language->get('text_edit');
-		$data['text_live']             = $this->language->get('text_live');
-		$data['text_test']             = $this->language->get('text_test');
-		$data['text_enabled']          = $this->language->get('text_enabled');
-		$data['text_disabled']         = $this->language->get('text_disabled');
-		$data['text_other']            = $this->language->get('text_other');
+		$data['text_payment'] = $this->language->get('text_payment');
+		$data['text_edit'] = $this->language->get('text_edit');
+		$data['text_live'] = $this->language->get('text_live');
+		$data['text_test'] = $this->language->get('text_test');
+		$data['text_enabled'] = $this->language->get('text_enabled');
+		$data['text_disabled'] = $this->language->get('text_disabled');
+		$data['text_other'] = $this->language->get('text_other');
 
-		$data['entry_email_address']   = $this->language->get('entry_email_address');
-		$data['entry_password']        = $this->language->get('entry_password');
-		$data['entry_currency']        = $this->language->get('entry_currency');
-		$data['entry_warehouse']       = $this->language->get('entry_warehouse');
-		$data['entry_country']         = $this->language->get('entry_country');
+		$data['entry_email_address'] = $this->language->get('entry_email_address');
+		$data['entry_password'] = $this->language->get('entry_password');
+		$data['entry_currency'] = $this->language->get('entry_currency');
+		$data['entry_warehouse'] = $this->language->get('entry_warehouse');
+		$data['entry_country'] = $this->language->get('entry_country');
 		$data['entry_merchant_number'] = $this->language->get('entry_merchant_number');
-		$data['entry_secret_key']      = $this->language->get('entry_secret_key');
-		$data['entry_environment']     = $this->language->get('entry_environment');
-		$data['entry_order_status']    = $this->language->get('entry_order_status');
-		$data['entry_status']          = $this->language->get('entry_status');
-		$data['entry_logging']         = $this->language->get('entry_logging');
-		$data['entry_sort_order']      = $this->language->get('entry_sort_order');
-		$data['entry_api_key']         = $this->language->get('entry_api_key');
-		$data['entry_card']            = $this->language->get('entry_card');
+		$data['entry_secret_key'] = $this->language->get('entry_secret_key');
+		$data['entry_environment'] = $this->language->get('entry_environment');
+		$data['entry_order_status'] = $this->language->get('entry_order_status');
+		$data['entry_status'] = $this->language->get('entry_status');
+		$data['entry_logging'] = $this->language->get('entry_logging');
+		$data['entry_sort_order'] = $this->language->get('entry_sort_order');
+		$data['entry_api_key'] = $this->language->get('entry_api_key');
+		$data['entry_card'] = $this->language->get('entry_card');
 
-		$data['help_email_address']    = $this->language->get('help_email_address');
-		$data['help_password']         = $this->language->get('help_password');
-		$data['help_currency']         = $this->language->get('help_currency');
-		$data['help_test']             = $this->language->get('help_test');
-		$data['help_secret_key']       = $this->language->get('help_secret_key');
-		$data['help_order_status']     = $this->language->get('help_order_status');
-		$data['help_logging']          = $this->language->get('help_logging');
+		$data['help_email_address'] = $this->language->get('help_email_address');
+		$data['help_password'] = $this->language->get('help_password');
+		$data['help_currency'] = $this->language->get('help_currency');
+		$data['help_test'] = $this->language->get('help_test');
+		$data['help_secret_key'] = $this->language->get('help_secret_key');
+		$data['help_order_status'] = $this->language->get('help_order_status');
+		$data['help_logging'] = $this->language->get('help_logging');
 
-		$data['button_save']           = $this->language->get('button_save');
-		$data['button_cancel']         = $this->language->get('button_cancel');
-		$data['currencies']			   = ['usd', 'eur'];
+		$data['button_save'] = $this->language->get('button_save');
+		$data['button_cancel'] = $this->language->get('button_cancel');
+		$data['currencies'] = ['usd', 'eur'];
 
-		if($this->initStripe() == true) {
+		if ($this->initStripe() == true) {
 			$data['currencies'] = \Stripe\CountrySpec::retrieve("US")['supported_payment_currencies'];
 		}
 
@@ -178,7 +180,8 @@ class ControllerExtensionPaymentStripe extends Controller {
 		$this->response->setOutput($this->load->view('extension/payment/stripe', $data));
 	}
 
-	public function install() {
+	public function install()
+	{
 		if ($this->user->hasPermission('modify', 'extension/extension')) {
 			$this->load->model('extension/payment/stripe');
 
@@ -186,7 +189,8 @@ class ControllerExtensionPaymentStripe extends Controller {
 		}
 	}
 
-	public function uninstall() {
+	public function uninstall()
+	{
 		if ($this->user->hasPermission('modify', 'extension/extension')) {
 			$this->load->model('extension/payment/stripe');
 
@@ -194,7 +198,8 @@ class ControllerExtensionPaymentStripe extends Controller {
 		}
 	}
 
-	public function refund() {
+	public function refund()
+	{
 		$this->load->language('extension/payment/stripe');
 		$this->initStripe();
 
@@ -208,14 +213,31 @@ class ControllerExtensionPaymentStripe extends Controller {
 			$stripe_order = $this->model_extension_payment_stripe->getOrder($this->request->post['order_id']);
 			$user_info = $this->model_user_user->getUser($this->user->getId());
 
-			$re = \Stripe\Refund::create(array(
-			  "charge" => $stripe_order['stripe_order_id'],
-			  "amount" => $this->request->post['amount'] * 100,
-			  "metadata" => array(
-			  	"opencart_user_username" => $user_info['username'],
-			  	"opencart_user_id" => $this->user->getId()
-			  )
-			));
+			try {
+				// For Payment Intents, we need to refund via the Payment Intent
+				$payment_intent = \Stripe\PaymentIntent::retrieve($stripe_order['stripe_order_id']);
+
+				$refund = \Stripe\Refund::create([
+					'payment_intent' => $payment_intent->id,
+					'amount' => $this->request->post['amount'] * 100,
+					'metadata' => [
+						'opencart_user_username' => $user_info['username'],
+						'opencart_user_id' => $this->user->getId(),
+						'opencart_order_id' => $this->request->post['order_id']
+					]
+				]);
+
+				$json['success'] = true;
+				$json['refund_id'] = $refund->id;
+				$json['status'] = $refund->status;
+
+			} catch (\Stripe\Exception\ApiErrorException $e) {
+				$json['error'] = true;
+				$json['msg'] = 'Refund failed: ' . $e->getMessage();
+			} catch (Exception $e) {
+				$json['error'] = true;
+				$json['msg'] = 'An error occurred: ' . $e->getMessage();
+			}
 
 		} else {
 			$json['error'] = true;
@@ -226,7 +248,8 @@ class ControllerExtensionPaymentStripe extends Controller {
 		$this->response->setOutput(json_encode($json));
 	}
 
-	public function order() {
+	public function order()
+	{
 
 		if ($this->config->get('payment_stripe_status')) {
 			$this->load->model('extension/payment/stripe');
@@ -237,25 +260,41 @@ class ControllerExtensionPaymentStripe extends Controller {
 			$stripe_order = $this->model_extension_payment_stripe->getOrder($this->request->get['order_id']);
 
 			if ($stripe_order && $this->initStripe()) {
-				$data['stripe_environment'] = $stripe_order['environment'];
+				try {
+					$data['stripe_environment'] = $stripe_order['environment'];
 
-				$data['charge'] = \Stripe\Charge::retrieve($stripe_order['stripe_order_id']);
-				$data['transaction'] = \Stripe\BalanceTransaction::retrieve($data['charge']['balance_transaction']);
+					// Retrieve Payment Intent instead of Charge
+					$payment_intent = \Stripe\PaymentIntent::retrieve($stripe_order['stripe_order_id']);
+					$data['payment_intent'] = $payment_intent;
 
-				$data['text_confirm_refund'] = $this->language->get('text_confirm_refund');
-				$data['text_refund_ok'] = $this->language->get('text_refund_ok');
-				$data['button_refund'] = $this->language->get('button_refund');
-				$data['datetime_format'] = $this->language->get('datetime_format');
+					// Get charges from the Payment Intent
+					if ($payment_intent->charges && count($payment_intent->charges->data) > 0) {
+						$data['charge'] = $payment_intent->charges->data[0];
+						if ($data['charge']->balance_transaction) {
+							$data['transaction'] = \Stripe\BalanceTransaction::retrieve($data['charge']->balance_transaction);
+						}
+					}
 
-				$data['token'] = $this->request->get['user_token'];
+					$data['text_confirm_refund'] = $this->language->get('text_confirm_refund');
+					$data['text_refund_ok'] = $this->language->get('text_refund_ok');
+					$data['button_refund'] = $this->language->get('button_refund');
+					$data['datetime_format'] = $this->language->get('datetime_format');
 
-				return $this->load->view('extension/payment/stripe_order', $data);
+					$data['token'] = $this->request->get['user_token'];
+
+					return $this->load->view('extension/payment/stripe_order', $data);
+
+				} catch (\Stripe\Exception\ApiErrorException $e) {
+					$data['error'] = 'Error retrieving payment information: ' . $e->getMessage();
+					return $this->load->view('extension/payment/stripe_order', $data);
+				}
 			}
 		}
 	}
 
 
-	protected function validate() {
+	protected function validate()
+	{
 		if (!$this->user->hasPermission('modify', 'extension/payment/stripe')) {
 			$this->error['warning'] = $this->language->get('error_permission');
 		}
@@ -267,15 +306,16 @@ class ControllerExtensionPaymentStripe extends Controller {
 		return !$this->error;
 	}
 
-	private function initStripe() {
+	private function initStripe()
+	{
 		$this->load->library('stripe');
-		if($this->config->get('payment_stripe_environment') == 'live') {
+		if ($this->config->get('payment_stripe_environment') == 'live') {
 			$stripe_secret_key = $this->config->get('payment_stripe_live_secret_key');
 		} else {
 			$stripe_secret_key = $this->config->get('payment_stripe_test_secret_key');
 		}
 
-		if($stripe_secret_key != '' && $stripe_secret_key != null) {
+		if ($stripe_secret_key != '' && $stripe_secret_key != null) {
 			\Stripe\Stripe::setApiKey($stripe_secret_key);
 			return true;
 		}

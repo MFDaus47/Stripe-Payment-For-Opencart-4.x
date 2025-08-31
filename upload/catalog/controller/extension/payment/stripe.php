@@ -1,10 +1,37 @@
 <?php
-class ControllerExtensionPaymentStripe extends Controller {
-	public function index() {
+class ControllerExtensionPaymentStripe extends Controller
+{
+	public function getMethod($address, $total)
+	{
+		$this->load->language('extension/payment/stripe');
+
+		$method_data = [];
+
+		if ($this->config->get('payment_stripe_status')) {
+			$method_data = [
+				'code' => 'stripe',
+				'name' => $this->language->get('text_title'),
+				'option' => [
+					'stripe' => [
+						'code' => 'stripe.stripe',
+						'name' => $this->language->get('text_title')
+					]
+				],
+				'sort_order' => $this->config->get('payment_stripe_sort_order'),
+				'terms' => '',
+				'title' => $this->language->get('text_title')
+			];
+		}
+
+		return $method_data;
+	}
+
+	public function index()
+	{
 		$this->load->language('extension/payment/stripe');
 		$this->load->model('extension/payment/stripe');
 
-		if($this->config->get('payment_stripe_environment') == 'live') {
+		if ($this->config->get('payment_stripe_environment') == 'live') {
 			$data['publishable_key'] = $this->config->get('payment_stripe_live_publishable_key');
 		} else {
 			$data['publishable_key'] = $this->config->get('payment_stripe_test_publishable_key');
@@ -30,14 +57,15 @@ class ControllerExtensionPaymentStripe extends Controller {
 		$data['can_store_cards'] = ($this->customer->isLogged() && $this->config->get('payment_stripe_store_cards'));
 		$data['cards'] = [];
 
-		if($this->customer->isLogged() && $this->config->get('payment_stripe_store_cards')) {
+		if ($this->customer->isLogged() && $this->config->get('payment_stripe_store_cards')) {
 			$data['cards'] = $this->model_extension_payment_stripe->getCards($this->customer->getId());
 		}
 
 		return $this->load->view('extension/payment/stripe', $data);
 	}
 
-	public function send() {
+	public function send()
+	{
 		$json = array();
 
 		$this->load->library('stripe');
@@ -48,100 +76,112 @@ class ControllerExtensionPaymentStripe extends Controller {
 		$stripe_environment = $this->config->get('payment_stripe_environment');
 		$order_info = $this->model_checkout_order->getOrder($this->session->data['order_id']);
 
+		if ($this->initStripe()) {
+			try {
+				$use_existing_card = json_decode($this->request->post['existingCard']);
+				$stripe_customer_id = '';
 
-		if($this->initStripe()) {
-			$use_existing_card = json_decode($this->request->post['existingCard']);
+				// Create Payment Intent parameters
+				$payment_intent_params = [
+					'amount' => round($order_info['total'] * 100),
+					'currency' => strtolower($this->config->get('payment_stripe_currency')),
+					'metadata' => [
+						'order_id' => $this->session->data['order_id'],
+						'opencart_customer_id' => $this->customer->isLogged() ? $this->customer->getId() : 'guest'
+					],
+					'automatic_payment_methods' => ['enabled' => false] // We'll handle payment methods manually
+				];
 
-			$stripe_customer_id = '';
-			$stripe_charge_parameters = array(
-				'amount' => round($order_info['total'] * 100),
-				'currency' => $this->config->get('payment_stripe_currency'),
-				'metadata' => array(
-					'orderId' => $this->session->data['order_id']
-				)
-			);
+				// Handle customer creation/management
+				if ($this->customer->isLogged()) {
+					$stripe_customer = $this->model_extension_payment_stripe->getCustomer($this->customer->getId());
 
-			# If customer is logged, but isn't registered as a customer in Stripe
-			if($this->customer->isLogged() && !$this->model_extension_payment_stripe->getCustomer($this->customer->getId())) {
-				$customer_info = $this->model_account_customer->getCustomer($this->customer->getId());
+					if (!$stripe_customer) {
+						$customer_info = $this->model_account_customer->getCustomer($this->customer->getId());
 
-				$stripe_customer = \Stripe\Customer::create(array(
-					'email' => $customer_info['email'],
-					'metadata' => array(
-						'customerId' => $this->customer->getId()
-					)
-				));
+						$stripe_customer_data = \Stripe\Customer::create([
+							'email' => $customer_info['email'],
+							'name' => $customer_info['firstname'] . ' ' . $customer_info['lastname'],
+							'metadata' => [
+								'opencart_customer_id' => $this->customer->getId()
+							]
+						]);
 
-				$this->model_extension_payment_stripe->addCustomer(
-					$stripe_customer,
-					$this->customer->getId(),
-					$stripe_environment
-				);
+						$this->model_extension_payment_stripe->addCustomer(
+							$stripe_customer_data,
+							$this->customer->getId(),
+							$stripe_environment
+						);
 
-			}
+						$stripe_customer = $this->model_extension_payment_stripe->getCustomer($this->customer->getId());
+					}
 
-			# If customer exists we use it
-			$stripe_customer = $this->model_extension_payment_stripe->getCustomer($this->customer->getId());
-
-
-			# May be the customer want to save its credit card
-			if($stripe_customer && ($use_existing_card == false)) {
-				$stripe_charge_parameters['customer'] = $stripe_customer['stripe_customer_id'];
-				$customer = \Stripe\Customer::retrieve($stripe_customer['stripe_customer_id']);
-				$stripe_card = $customer->sources->create(array("source" => $this->request->post['card']));
-				$stripe_charge_parameters['customer'] = $customer['id'];
-				$stripe_charge_parameters['source'] = $stripe_card['id'];
-
-				if(!!json_decode($this->request->post['saveCreditCard'])) {
-					$this->model_extension_payment_stripe->addCard(
-						$stripe_card,
-						$this->customer->getId(),
-						$stripe_environment
-					);
+					$payment_intent_params['customer'] = $stripe_customer['stripe_customer_id'];
 				}
-			} else {
-				$stripe_charge_parameters['source'] = $this->request->post['card'];
+
+				// Handle payment method
+				if ($use_existing_card && $stripe_customer) {
+					// Use existing payment method
+					$payment_intent_params['payment_method'] = $this->request->post['card'];
+				} else {
+					// Create new payment method from token
+					$payment_method = \Stripe\PaymentMethod::create([
+						'type' => 'card',
+						'card' => ['token' => $this->request->post['card']]
+					]);
+
+					$payment_intent_params['payment_method'] = $payment_method->id;
+
+					// Save card if requested
+					if ($this->customer->isLogged() && json_decode($this->request->post['saveCreditCard'])) {
+						$this->model_extension_payment_stripe->addPaymentMethod(
+							$payment_method,
+							$this->customer->getId(),
+							$stripe_environment
+						);
+					}
+				}
+
+				// Create Payment Intent
+				$payment_intent = \Stripe\PaymentIntent::create($payment_intent_params);
+
+				// Confirm the Payment Intent
+				$confirmed_payment_intent = \Stripe\PaymentIntent::retrieve($payment_intent->id);
+				$confirmed_payment_intent->confirm();
+
+				if ($confirmed_payment_intent->status === 'succeeded') {
+					$this->model_extension_payment_stripe->addOrder($order_info, $confirmed_payment_intent->id, $stripe_environment);
+					$message = 'Payment Intent ID: ' . $confirmed_payment_intent->id . ' Status: ' . $confirmed_payment_intent->status;
+					$this->model_checkout_order->addOrderHistory($this->session->data['order_id'], $this->config->get('payment_stripe_order_status_id'), $message, false);
+					$json['processed'] = true;
+					$json['success'] = $this->url->link('checkout/success');
+				} else {
+					$json['error'] = 'Payment failed: ' . $confirmed_payment_intent->status;
+				}
+
+			} catch (\Stripe\Exception\ApiErrorException $e) {
+				$json['error'] = 'Payment error: ' . $e->getMessage();
+			} catch (Exception $e) {
+				$json['error'] = 'An error occurred: ' . $e->getMessage();
 			}
-
-			if($use_existing_card && $stripe_customer) {
-				$stripe_charge_parameters['customer'] = $stripe_customer['stripe_customer_id'];
-			}
-
-			$charge = \Stripe\Charge::create($stripe_charge_parameters);
-
-			if(!json_decode($this->request->post['saveCreditCard']) && isset($customer) && isset($stripe_card)) {
-				$customer->sources->retrieve($stripe_card['id'])->delete();
-			}
-
-			if(isset($charge['id'])) {
-				$this->model_extension_payment_stripe->addOrder($order_info, $charge['id'], $stripe_environment);
-				$message = 'Charge ID: '.$charge['id'].' Status:'. $charge['status'];
-				$this->model_checkout_order->addOrderHistory($this->session->data['order_id'], $this->config->get('payment_stripe_order_status_id'), $message, false);
-				$json['processed'] = true;
-			}
-
-
-			// addOrderHistory
-			$json['success'] = $this->url->link('checkout/success');
-			// $json['error'] = $response_info['L_LONGMESSAGE0'];
 		} else {
-			$json['error'] = 'Contact administrator';
+			$json['error'] = 'Stripe configuration error. Please contact administrator.';
 		}
-		
 
 		$this->response->addHeader('Content-Type: application/json');
 		$this->response->setOutput(json_encode($json));
 	}
 
-	private function initStripe() {
+	private function initStripe()
+	{
 		$this->load->library('stripe');
-		if($this->config->get('payment_stripe_environment') == 'live') {
+		if ($this->config->get('payment_stripe_environment') == 'live') {
 			$stripe_secret_key = $this->config->get('payment_stripe_live_secret_key');
 		} else {
 			$stripe_secret_key = $this->config->get('payment_stripe_test_secret_key');
 		}
 
-		if($stripe_secret_key != '' && $stripe_secret_key != null) {
+		if ($stripe_secret_key != '' && $stripe_secret_key != null) {
 			\Stripe\Stripe::setApiKey($stripe_secret_key);
 			return true;
 		}

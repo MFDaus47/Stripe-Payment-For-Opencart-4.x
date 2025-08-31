@@ -1,72 +1,127 @@
 <?php
 
-// Stripe singleton
-require_once(DIR_SYSTEM.'library/stripe-php/Stripe.php');
+/**
+ * Stripe Payment Gateway Library for OpenCart 4.x
+ *
+ * This library provides integration with Stripe's Payment Intents API
+ * Compatible with Stripe PHP SDK 13.x+
+ */
 
-// Utilities
-require_once(DIR_SYSTEM.'library/stripe-php/Util/AutoPagingIterator.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Util/RequestOptions.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Util/Set.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Util/Util.php');
+// Check if Stripe SDK is available via Composer
+$composer_autoload = DIR_SYSTEM . '../vendor/autoload.php';
+$legacy_autoload = DIR_SYSTEM . 'library/stripe-php/init.php';
 
-// HttpClient
-require_once(DIR_SYSTEM.'library/stripe-php/HttpClient/ClientInterface.php');
-require_once(DIR_SYSTEM.'library/stripe-php/HttpClient/CurlClient.php');
+if (file_exists($composer_autoload)) {
+    // Modern approach: Use Composer autoloading
+    require_once $composer_autoload;
+} elseif (file_exists($legacy_autoload)) {
+    // Fallback: Use legacy SDK structure
+    require_once $legacy_autoload;
+} else {
+    // Manual loading for older installations
+    $stripe_files = [
+        'Stripe.php',
+        'Util/AutoPagingIterator.php',
+        'Util/RequestOptions.php',
+        'Util/Set.php',
+        'Util/Util.php',
+        'HttpClient/ClientInterface.php',
+        'HttpClient/CurlClient.php',
+        'Error/Base.php',
+        'Error/Api.php',
+        'Error/ApiConnection.php',
+        'Error/Authentication.php',
+        'Error/Card.php',
+        'Error/InvalidRequest.php',
+        'Error/RateLimit.php',
+        'ApiResponse.php',
+        'JsonSerializable.php',
+        'StripeObject.php',
+        'ApiRequestor.php',
+        'ApiResource.php',
+        'SingletonApiResource.php',
+        'AttachedObject.php',
+        'ExternalAccount.php',
+        'Account.php',
+        'AlipayAccount.php',
+        'ApplicationFee.php',
+        'ApplicationFeeRefund.php',
+        'Balance.php',
+        'BalanceTransaction.php',
+        'BankAccount.php',
+        'BitcoinReceiver.php',
+        'BitcoinTransaction.php',
+        'Card.php',
+        'Charge.php',
+        'Collection.php',
+        'CountrySpec.php',
+        'Coupon.php',
+        'Customer.php',
+        'Dispute.php',
+        'Event.php',
+        'FileUpload.php',
+        'Invoice.php',
+        'InvoiceItem.php',
+        'Order.php',
+        'OrderReturn.php',
+        'Plan.php',
+        'Product.php',
+        'Recipient.php',
+        'Refund.php',
+        'SKU.php',
+        'Source.php',
+        'Subscription.php',
+        'ThreeDSecure.php',
+        'Token.php',
+        'Transfer.php',
+        'TransferReversal.php',
+        'PaymentIntent.php',
+        'PaymentMethod.php',
+        'Webhook.php',
+        'WebhookEndpoint.php'
+    ];
 
-// Errors
-require_once(DIR_SYSTEM.'library/stripe-php/Error/Base.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Error/Api.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Error/ApiConnection.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Error/Authentication.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Error/Card.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Error/InvalidRequest.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Error/RateLimit.php');
+    foreach ($stripe_files as $file) {
+        $file_path = DIR_SYSTEM . 'library/stripe-php/' . $file;
+        if (file_exists($file_path)) {
+            require_once $file_path;
+        }
+    }
+}
 
-// Plumbing
-require_once(DIR_SYSTEM.'library/stripe-php/ApiResponse.php');
-require_once(DIR_SYSTEM.'library/stripe-php/JsonSerializable.php');
-require_once(DIR_SYSTEM.'library/stripe-php/StripeObject.php');
-require_once(DIR_SYSTEM.'library/stripe-php/ApiRequestor.php');
-require_once(DIR_SYSTEM.'library/stripe-php/ApiResource.php');
-require_once(DIR_SYSTEM.'library/stripe-php/SingletonApiResource.php');
-require_once(DIR_SYSTEM.'library/stripe-php/AttachedObject.php');
-require_once(DIR_SYSTEM.'library/stripe-php/ExternalAccount.php');
+/**
+ * Stripe Library Class
+ * Provides initialization and utility methods for Stripe integration
+ */
+class StripeLibrary {
 
-// Stripe API Resources
-require_once(DIR_SYSTEM.'library/stripe-php/Account.php');
-require_once(DIR_SYSTEM.'library/stripe-php/AlipayAccount.php');
-require_once(DIR_SYSTEM.'library/stripe-php/ApplicationFee.php');
-require_once(DIR_SYSTEM.'library/stripe-php/ApplicationFeeRefund.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Balance.php');
-require_once(DIR_SYSTEM.'library/stripe-php/BalanceTransaction.php');
-require_once(DIR_SYSTEM.'library/stripe-php/BankAccount.php');
-require_once(DIR_SYSTEM.'library/stripe-php/BitcoinReceiver.php');
-require_once(DIR_SYSTEM.'library/stripe-php/BitcoinTransaction.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Card.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Charge.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Collection.php');
-require_once(DIR_SYSTEM.'library/stripe-php/CountrySpec.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Coupon.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Customer.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Dispute.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Event.php');
-require_once(DIR_SYSTEM.'library/stripe-php/FileUpload.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Invoice.php');
-require_once(DIR_SYSTEM.'library/stripe-php/InvoiceItem.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Order.php');
-require_once(DIR_SYSTEM.'library/stripe-php/OrderReturn.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Plan.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Product.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Recipient.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Refund.php');
-require_once(DIR_SYSTEM.'library/stripe-php/SKU.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Source.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Subscription.php');
-require_once(DIR_SYSTEM.'library/stripe-php/ThreeDSecure.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Token.php');
-require_once(DIR_SYSTEM.'library/stripe-php/Transfer.php');
-require_once(DIR_SYSTEM.'library/stripe-php/TransferReversal.php');
+    /**
+     * Initialize Stripe with API key
+     *
+     * @param string $api_key Stripe API key
+     * @return bool
+     */
+    public static function init($api_key) {
+        if (empty($api_key)) {
+            return false;
+        }
 
-class Stripe {
-    
+        try {
+            \Stripe\Stripe::setApiKey($api_key);
+            \Stripe\Stripe::setApiVersion('2023-10-16'); // Use latest stable API version
+            return true;
+        } catch (Exception $e) {
+            error_log('Stripe initialization error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get Stripe SDK version
+     *
+     * @return string
+     */
+    public static function getVersion() {
+        return \Stripe\Stripe::VERSION ?? 'Unknown';
+    }
 }
