@@ -9,8 +9,8 @@ class Stripe extends \Opencart\System\Engine\Controller
 	{
 		$this->load->model('setting/setting');
 
-		$this->load->model('extension/payment/stripe');
-		$this->load->language('extension/payment/stripe');
+		$this->load->model('extension/stripe/payment/stripe');
+		$this->load->language('extension/stripe/payment/stripe');
 
 		$this->document->setTitle($this->language->get('heading_title'));
 
@@ -39,7 +39,7 @@ class Stripe extends \Opencart\System\Engine\Controller
 
 		$data['breadcrumbs'][] = array(
 			'text' => $this->language->get('heading_title'),
-			'href' => $this->url->link('extension/payment/stripe', 'user_token=' . $this->session->data['user_token'], true)
+			'href' => $this->url->link('extension/stripe/payment/stripe', 'user_token=' . $this->session->data['user_token'], true)
 		);
 
 		$data['heading_title'] = $this->language->get('heading_title');
@@ -79,13 +79,13 @@ class Stripe extends \Opencart\System\Engine\Controller
 
 		$data['button_save'] = $this->language->get('button_save');
 		$data['button_cancel'] = $this->language->get('button_cancel');
-		$data['currencies'] = ['usd', 'eur'];
+		$data['currencies'] = ['usd', 'myr'];
 
 		if ($this->initStripe() == true) {
 			$data['currencies'] = \Stripe\CountrySpec::retrieve("US")['supported_payment_currencies'];
 		}
 
-		$data['action'] = $this->url->link('extension/payment/stripe', 'user_token=' . $this->session->data['user_token'], true);
+		$data['action'] = $this->url->link('extension/stripe/payment/stripe', 'user_token=' . $this->session->data['user_token'], true);
 
 		$data['cancel'] = $this->url->link('extension/extension', 'user_token=' . $this->session->data['user_token'] . '&type=payment', true);
 
@@ -179,13 +179,13 @@ class Stripe extends \Opencart\System\Engine\Controller
 		$data['column_left'] = $this->load->controller('common/column_left');
 		$data['footer'] = $this->load->controller('common/footer');
 
-		$this->response->setOutput($this->load->view('extension/payment/stripe', $data));
+		$this->response->setOutput($this->load->view('extension/stripe/payment/stripe', $data));
 	}
 
 	public function install()
 	{
 		if ($this->user->hasPermission('modify', 'extension/extension')) {
-			$this->load->model('extension/payment/stripe');
+			$this->load->model('extension/stripe/payment/stripe');
 
 			$this->model_extension_payment_stripe->install();
 		}
@@ -194,7 +194,7 @@ class Stripe extends \Opencart\System\Engine\Controller
 	public function uninstall()
 	{
 		if ($this->user->hasPermission('modify', 'extension/extension')) {
-			$this->load->model('extension/payment/stripe');
+			$this->load->model('extension/stripe/payment/stripe');
 
 			$this->model_extension_payment_stripe->uninstall();
 		}
@@ -202,14 +202,14 @@ class Stripe extends \Opencart\System\Engine\Controller
 
 	public function refund()
 	{
-		$this->load->language('extension/payment/stripe');
+		$this->load->language('extension/stripe/payment/stripe');
 		$this->initStripe();
 
 		$json = array();
 		$json['error'] = false;
 
 		if (isset($this->request->post['order_id']) && $this->request->post['order_id'] != '') {
-			$this->load->model('extension/payment/stripe');
+			$this->load->model('extension/stripe/payment/stripe');
 			$this->load->model('user/user');
 
 			$stripe_order = $this->model_extension_payment_stripe->getOrder($this->request->post['order_id']);
@@ -237,8 +237,8 @@ class Stripe extends \Opencart\System\Engine\Controller
 	{
 
 		if ($this->config->get('payment_stripe_status')) {
-			$this->load->model('extension/payment/stripe');
-			$this->load->language('extension/payment/stripe');
+			$this->load->model('extension/stripe/payment/stripe');
+			$this->load->language('extension/stripe/payment/stripe');
 
 			$data['order_id'] = $this->request->get['order_id'];
 
@@ -257,7 +257,7 @@ class Stripe extends \Opencart\System\Engine\Controller
 
 				$data['token'] = $this->request->get['user_token'];
 
-				return $this->load->view('extension/payment/stripe_order', $data);
+				return $this->load->view('extension/stripe/payment/stripe_order', $data);
 			}
 		}
 	}
@@ -265,7 +265,7 @@ class Stripe extends \Opencart\System\Engine\Controller
 
 	protected function validate()
 	{
-		if (!$this->user->hasPermission('modify', 'extension/payment/stripe')) {
+		if (!$this->user->hasPermission('modify', 'extension/stripe/payment/stripe')) {
 			$this->error['warning'] = $this->language->get('error_permission');
 		}
 
