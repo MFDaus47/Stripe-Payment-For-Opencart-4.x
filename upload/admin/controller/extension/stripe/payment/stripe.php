@@ -215,20 +215,27 @@ class Stripe extends \Opencart\System\Engine\Controller
 			$stripe_order = $this->model_extension_payment_stripe->getOrder($this->request->post['order_id']);
 			$user_info = $this->model_user_user->getUser($this->user->getId());
 
-			$re = \Stripe\Refund::create(array(
-				"charge" => $stripe_order['stripe_order_id'],
-				"amount" => $this->request->post['amount'] * 100,
-				"metadata" => array(
-					"opencart_user_username" => $user_info['username'],
-					"opencart_user_id" => $this->user->getId()
-				)
-			));
+			try {
+				$refund = \Stripe\Refund::create(array(
+					"charge" => $stripe_order['stripe_order_id'],
+					"amount" => $this->request->post['amount'] * 100,
+					"metadata" => array(
+						"opencart_user_username" => $user_info['username'],
+						"opencart_user_id" => $this->user->getId()
+					)
+				));
 
+				$json['success'] = true;
+				$json['refund_id'] = $refund->id;
+
+			} catch (\Stripe\Exception\ApiErrorException $e) {
+				$json['error'] = true;
+				$json['msg'] = $e->getMessage();
+			}
 		} else {
 			$json['error'] = true;
 			$json['msg'] = 'Missing data';
 		}
-
 		$this->response->addHeader('Content-Type: application/json');
 		$this->response->setOutput(json_encode($json));
 	}
